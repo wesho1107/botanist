@@ -1,76 +1,39 @@
 from typing import List, Optional
-from pydantic import Annotated, BaseModel, Field
-from enum import Enum
+from pydantic import BaseModel, Field
 
-class LightExposure(Enum):
-    full_sun = "FULL_SUN"
-    part_sun = "PART_SUN"
-    part_shade = "PART_SHADE"
-    full_shade = "FULL_SHADE"
-    low_indoor = "LOW_INDOOR"
-    medium_indoor = "MEDIUM_INDOOR"
-    high_indoor = "HIGH_INDOOR"
-
-class WaterNeedLevel(Enum):
-    very_low = "VERY_LOW"
-    low = "LOW"
-    medium = "MEDIUM"
-    high = "HIGH"
-    very_high = "VERY_HIGH"
-
-class GrowthStage(Enum):
-    germination = "GERMINATION"
-    seedling = "SEEDLING"
-    vegetative = "VEGETATIVE"
-    flowering_fruiting = "FLOWERING_FRUITING"
-    mature_maintenance = "MATURE_MAINTENANCE"
-
-class BaseProfile(BaseModel):
-    notes: Optional[str] = None
-
-class QuantitativeRequirements(BaseModel):
-    value_range: str = Field(..., description="e.g., '60-80%'")
-    optimal: float = Field(..., description="The target value for automation")
-    unit: Optional[str] = None
-
-# Optimal nutrient required for plant
-class NutrientProfile(BaseProfile):
-    npk_ratio: str = Field(..., description="e.g, '10-20-30'")
-    feeding_frequency_per_month: Optional[float]
-
-class LightProfile(BaseProfile):
-    daily_light_hours: QuantitativeRequirements
-    light_intensity: QuantitativeRequirements
-
-class WaterProfile(BaseProfile):
-    watering_instructions: str
-    need_level: Optional[WaterNeedLevel]
-    frequency_per_week_min: Optional[float]
-    frequency_per_week_max: Optional[float]
-
-class SoilProfile(BaseProfile):
-    soil_ph: Optional[QuantitativeRequirements]
-    humidity: Optional[QuantitativeRequirements]
-
-class AirProfile(BaseProfile):
-    humidity: Optional[QuantitativeRequirements]
-    temp_day_c: Optional[QuantitativeRequirements]
-    temp_night_c: Optional[QuantitativeRequirements]
-
-# Stage of plant: germination, seedling, etc.
 class GrowthPhase(BaseModel):
-    growth_stage: GrowthStage
-    duration_days: Optional[str] = Field(..., description = "e.g., '~30 days'")
+    # Core Phase Info
+    growth_stage: str
+    duration_days: Optional[str] = Field(None, description="e.g., '~30 days'")
+    
+    # Light Requirements
+    light_hours_range: Optional[str] = Field(None, description="e.g., '12-14 hours'")
+    light_hours_optimal: Optional[float] = None
+    light_intensity_value: Optional[str] = Field(None, description="e.g., '600-800 PPFD'")
+    light_notes: Optional[str] = None
 
-    light_requirements: Optional[LightProfile]
-    water_requirements: Optional[WaterProfile]
-    soil_requirements: Optional[SoilProfile]
-    air_requirements: Optional[AirProfile]
-    nutrients_requirements: Optional[NutrientProfile]
+    # Water Requirements
+    watering_instructions: Optional[str] = None
+    water_need_level: Optional[str] = Field(None, description="Low, Medium, or High")
+    water_freq_week_min: Optional[float] = None
+    water_freq_week_max: Optional[float] = None
+    water_notes: Optional[str] = None
 
-# Data representative of plant
+    # Soil & Air
+    soil_ph_optimal: Optional[float] = None
+    soil_humidity_optimal: Optional[float] = None
+    air_humidity_range: Optional[str] = None
+    air_temp_day_c_optimal: Optional[float] = None
+    air_temp_night_c_optimal: Optional[float] = None
+    
+    # Nutrients
+    npk_ratio: Optional[str] = Field(None, description="e.g., '10-20-10'")
+    feeding_frequency_per_month: Optional[float] = None
+
 class PlantData(BaseModel):
     common_name: str
     scientific_name: str
-    summary: str = Field(..., description="A brief summary of the plant and its growth characteristics")
+    summary: str = Field(..., description="Brief summary of the plant")
+    
+    # keep 'lifecycle' as a list because a plant has multiple distinct stages
     lifecycle: List[GrowthPhase]
