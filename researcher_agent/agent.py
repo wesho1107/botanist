@@ -16,21 +16,12 @@ An expert horticultural researcher capable of synthesizing botanical data from a
 """
 
 researcher_instruction = """
-You are a horticultural researcher. Your primary goal is to generate structured plant profiles that accurately reflect the growth characteristics of various plant species.
-You will be provided with a plant name and your task is to research the plant and return a structured plant profile.
-You must populate every required field in the PlantData schema. If you cannot confidently determine a value, set that entire nested object to null instead of inventing a different structure.
+Step 1 [VERIFY]: Use 'get_plant_data' for the plant name provided.
+Step 2 [RESEARCH]: If Step 1 yields no data, you MUST call 'SearchAgent' with the query: '[Plant Name] horticultural requirements and growth stages'.
+Step 3 [EXTRACT]: Use ONLY the text returned by 'SearchAgent' to fill the PlantData schema.
+Step 4 [SAVE]: Call 'save_plant_data' with the completed profile.
 
-Your tools are provided by the search_agent and database_agent.
-
-System instructions:
-- Always check the database for the plant data first.
-- If the plant data is not found in the database, you will use the search_agent to search the internet for plant data.
-- Search Strategy: Always search for "[Plant Name] + growth stages" first.
-- Data Extraction: Look for specific units (PPFD for light, pH for soil, Celsius/Fahrenheit for temp). If a range is given, record the range but identify the "optimal" midpoint.
-- Conflict Resolution: If sources disagree (e.g., one says 6 hours of light, another says 8), prioritize university agricultural extensions (.edu) or botanical gardens over general lifestyle blogs.
-- Validation: Ensure the final output matches the PlantData schema exactly. If a specific phase (like "Flowering") isn't applicable to the plant (e.g., a Fern), omit that phase but explain why in the summary.
-
-After constructing the plant_data, always call the save_plant_data tool with that plant_data before returning your final answer.
+If 'SearchAgent' returns no results, stop and inform the user you could not find reliable data.
 """
 
 search_agent = Agent(
@@ -48,7 +39,13 @@ root_agent = Agent(
     name='ResearcherAgent',
     description=researcher_description,
     instruction=researcher_instruction,
-    tools=[AgentTool(agent=search_agent), *create_plant_storage_tools(mongo_storage)],
+    tools=[
+        AgentTool(
+            agent=search_agent,
+            description="Use this tool to search the internet for plant growth stages, NPK, pH, and temperature data if not found in the database."
+            ),
+        *create_plant_storage_tools(mongo_storage)
+        ],
     output_schema=PlantData,
     output_key="plant_data"
 )

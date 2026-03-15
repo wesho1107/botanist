@@ -6,6 +6,7 @@ from pymongo.errors import PyMongoError
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 import os
+import logging
 
 from researcher_agent.schema import PlantData
 
@@ -28,7 +29,6 @@ class MongoPlantStorage(PlantStorage):
 
     def save_plant(self, plant_data: PlantData) -> str:
         try:
-            print(f"Saving plant data: {plant_data}")
             document = plant_data.model_dump() # .model_dump() converts Pydantic model to a dict for Mongo
             
             # Upsert based on scientific name to avoid duplicates
@@ -37,11 +37,10 @@ class MongoPlantStorage(PlantStorage):
                 {"$set": document},
                 upsert=True
             )
-            print(f"Result: {result}")
+            logging.info(f"Successfully saved/updated: {result}")
             return f"Successfully saved/updated: {result}"
 
         except PyMongoError as e:
-            print(f"Database error: {str(e)}")
             return f"Database error: {str(e)}"
 
     def get_plant(self, plant_name: str) -> Optional[PlantData]:

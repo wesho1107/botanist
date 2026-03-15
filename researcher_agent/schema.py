@@ -34,6 +34,6 @@ class PlantData(BaseModel):
     common_name: str
     scientific_name: str
     summary: str = Field(..., description="Brief summary of the plant")
-    
+    research_sources: List[str] = Field(..., description="List of URLs used to find this data. MANDATORY.")
     # keep 'lifecycle' as a list because a plant has multiple distinct stages
     lifecycle: List[GrowthPhase]
