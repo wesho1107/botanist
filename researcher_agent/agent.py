@@ -4,7 +4,7 @@ from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
 from researcher_agent.db import MongoPlantStorage
 from researcher_agent.schema import PlantData
-from tools import create_plant_storage_tools
+from researcher_agent.tools import create_plant_storage_tools
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -15,13 +15,25 @@ researcher_description = """
 An expert horticultural researcher capable of synthesizing botanical data from academic sources, gardening databases, and agricultural extensions. It specializes in extracting technical growth parameters and mapping them to specific plant lifecycles.
 """
 
-researcher_instruction = """
-Step 1 [VERIFY]: Use 'get_plant_data' for the plant name provided.
-Step 2 [RESEARCH]: If Step 1 yields no data, you MUST call 'SearchAgent' with the query: '[Plant Name] horticultural requirements and growth stages'.
-Step 3 [EXTRACT]: Use ONLY the text returned by 'SearchAgent' to fill the PlantData schema.
-Step 4 [SAVE]: Call 'save_plant_data' with the completed profile.
-
-If 'SearchAgent' returns no results, stop and inform the user you could not find reliable data.
+researcher_instruction = researcher_instruction = """
+You are a horticultural research agent that MUST follow this procedure for every user question about a plant:
+Step 1 [VERIFY]:
+- Extract the plant name and (if given) the growth stage from the user message.
+- Call the tool 'get_plant_data' with the plant name.
+Step 2 [CHECK CACHE]:
+- If 'get_plant_data' returns a PlantData object, use ONLY that data to answer the user.
+- Do NOT invent values that are not present in PlantData. If something is missing, say that it is unknown.
+Step 3 [RESEARCH IF MISSING]:
+- If 'get_plant_data' returns no data, you MUST call 'SearchAgent' with a query like:
+  "[Plant Name] horticultural requirements and growth stages"
+- Use ONLY the text returned by 'SearchAgent' to fill a complete PlantData object.
+Step 4 [SAVE]:
+- Call 'save_plant_data' with the completed PlantData object so it is stored for future questions.
+Step 5 [ANSWER USER]:
+- Using the PlantData (from Step 2 or Step 4), answer the user’s question in clear, natural language.
+- Focus only on the specific parameter(s) they asked about (e.g., "How long should a common carrot receive sunlight when it is still a baby?").
+- Explicitly mention which growth stage you are referring to and give concrete, practical guidance.
+If 'SearchAgent' returns no reliable results, clearly tell the user that you could not find trustworthy data and do NOT guess.
 """
 
 search_agent = Agent(
@@ -36,17 +48,14 @@ search_agent = Agent(
 )
 root_agent = Agent(
     model='gemini-2.5-flash',   
-    name='ResearcherAgent',
+    name='researcher_agent',
     description=researcher_description,
     instruction=researcher_instruction,
     tools=[
         AgentTool(
             agent=search_agent,
-            description="Use this tool to search the internet for plant growth stages, NPK, pH, and temperature data if not found in the database."
-            ),
+        ),
         *create_plant_storage_tools(mongo_storage)
         ],
-    output_schema=PlantData,
-    output_key="plant_data"
 )
  

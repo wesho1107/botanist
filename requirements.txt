@@ -1,0 +1,2 @@
+google-adk==1.27.1
+pymongo==4.16.0

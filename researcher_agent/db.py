@@ -52,4 +52,5 @@ class MongoPlantStorage(PlantStorage):
                 {"scientific_name": {"$regex": f"^{plant_name}$", "$options": "i"}}
             ]
         }
-        return self.collection.find_one(query)
+        result = self.collection.find_one(query)
+        return PlantData(**result) if result else None  
